@@ -19,6 +19,28 @@ struct SettingsView: View {
                 }
                 .padding(.horizontal, 2)
 
+                // Menu Bar Display Options Group
+                GlassCard(cornerRadius: 12, padding: 12) {
+                    VStack(alignment: .leading, spacing: 10) {
+                        Text("MENU BAR DISPLAY")
+                            .font(.system(size: 10, weight: .bold, design: .monospaced))
+                            .foregroundColor(.secondary)
+                            .tracking(0.5)
+
+                        Toggle(isOn: $manager.showQuotaInMenuBar) {
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("Show live quota percentages in Menu Bar")
+                                    .font(.system(size: 11, weight: .medium))
+                                    .foregroundColor(.primary)
+                                Text("Shows Claude session % (C: XX%) and Codex weekly limit % (X: XX%)")
+                                    .font(.system(size: 9.5, weight: .regular))
+                                    .foregroundColor(.secondary)
+                            }
+                        }
+                        .toggleStyle(.switch)
+                    }
+                }
+
                 // Refresh Interval Card Group
                 GlassCard(cornerRadius: 12, padding: 12) {
                     VStack(alignment: .leading, spacing: 8) {

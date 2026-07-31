@@ -221,6 +221,28 @@ class CodexDataReader {
         task.currentDirectoryURL = FileManager.default.temporaryDirectory
         task.standardError = FileHandle.nullDevice
 
+        let homeDir = NSHomeDirectory()
+        var env = ProcessInfo.processInfo.environment
+        let codexBinDir = (codexBinary as NSString).deletingLastPathComponent
+        var pathComponents = [
+            codexBinDir,
+            "\(homeDir)/.local/bin",
+            "/opt/homebrew/bin",
+            "/usr/local/bin",
+            "/usr/bin",
+            "/bin",
+            "/usr/sbin",
+            "/sbin"
+        ]
+        let nvmRoot = "\(homeDir)/.nvm/versions/node"
+        if let versions = try? FileManager.default.contentsOfDirectory(atPath: nvmRoot) {
+            pathComponents.append(contentsOf: versions.map { "\(nvmRoot)/\($0)/bin" })
+        }
+        env["PATH"] = pathComponents.joined(separator: ":")
+        env["HOME"] = homeDir
+        env["USER"] = NSUserName()
+        task.environment = env
+
         let input = Pipe()
         let output = Pipe()
         task.standardInput = input
@@ -262,15 +284,25 @@ class CodexDataReader {
                 guard let lineData = line.data(using: .utf8),
                       let root = try? JSONSerialization.jsonObject(with: lineData) as? [String: Any],
                       (root["id"] as? NSNumber)?.intValue == 2,
-                      let result = root["result"] as? [String: Any],
-                      let rateLimits = result["rateLimits"] as? [String: Any] else { continue }
+                      let result = root["result"] as? [String: Any] else { continue }
 
-                if let primary = rateLimits["primary"] as? [String: Any] {
-                    applyRateLimitWindow(primary, to: &data)
+                if let rateLimits = result["rateLimits"] as? [String: Any] {
+                    if let primary = rateLimits["primary"] as? [String: Any] {
+                        applyRateLimitWindow(primary, to: &data)
+                    }
+                    if let planType = rateLimits["planType"] as? String, !planType.isEmpty {
+                        data.accountPlan = planType.capitalized
+                    }
+                } else if let rateLimitsByLimitId = result["rateLimitsByLimitId"] as? [String: Any],
+                          let codexLimits = rateLimitsByLimitId["codex"] as? [String: Any] {
+                    if let primary = codexLimits["primary"] as? [String: Any] {
+                        applyRateLimitWindow(primary, to: &data)
+                    }
+                    if let planType = codexLimits["planType"] as? String, !planType.isEmpty {
+                        data.accountPlan = planType.capitalized
+                    }
                 }
-                if let planType = rateLimits["planType"] as? String, !planType.isEmpty {
-                    data.accountPlan = planType.capitalized
-                }
+
                 applyResetCredits(result["rateLimitResetCredits"], to: &data)
                 return data.weeklyLimitUsedPct != nil || data.availableResetCreditsCount != nil
             }
@@ -288,12 +320,17 @@ class CodexDataReader {
         }
     }
 
-    private func applyResetCredits(_ value: Any?, to data: inout CodexUsageData) {
+    func applyResetCredits(_ value: Any?, to data: inout CodexUsageData) {
         guard let summary = value as? [String: Any] else { return }
         data.availableResetCreditsCount = (summary["availableCount"] as? NSNumber)?.intValue
         guard let credits = summary["credits"] as? [[String: Any]] else { return }
-        data.resets = credits.enumerated().compactMap { index, credit in
-            guard (credit["status"] as? String) == "available" else { return nil }
+        
+        let availableCredits = credits.filter { credit in
+            guard let status = credit["status"] as? String else { return false }
+            return status.lowercased() == "available"
+        }
+        
+        data.resets = availableCredits.enumerated().map { index, credit in
             let title = (credit["title"] as? String) ?? "Full reset"
             let expiry: String
             if let timestamp = (credit["expiresAt"] as? NSNumber)?.doubleValue {

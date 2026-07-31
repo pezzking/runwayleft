@@ -43,9 +43,13 @@ struct ClaudeStatusCard: View {
                 // Card Header
                 HStack {
                     HStack(spacing: 7) {
-                        Image(systemName: "brain.head.profile")
-                            .font(.system(size: 15, weight: .semibold))
-                            .foregroundStyle(MacTheme.claudeGradient)
+                        if let img = BrandAssets.shared.claudeIcon14 {
+                            Image(nsImage: img)
+                        } else {
+                            Image(systemName: "brain.head.profile")
+                                .font(.system(size: 15, weight: .semibold))
+                                .foregroundStyle(MacTheme.claudeGradient)
+                        }
                         
                         Text("Claude Agent")
                             .font(.system(size: 13, weight: .bold, design: .rounded))
@@ -117,9 +121,13 @@ struct CodexStatusCard: View {
                 // Card Header
                 HStack {
                     HStack(spacing: 7) {
-                        Image(systemName: "terminal.fill")
-                            .font(.system(size: 14, weight: .semibold))
-                            .foregroundStyle(MacTheme.codexGradient)
+                        if let img = BrandAssets.shared.codexIcon14 {
+                            Image(nsImage: img)
+                        } else {
+                            Image(systemName: "terminal.fill")
+                                .font(.system(size: 14, weight: .semibold))
+                                .foregroundStyle(MacTheme.codexGradient)
+                        }
                         
                         Text("OpenAI Codex")
                             .font(.system(size: 13, weight: .bold, design: .rounded))
@@ -194,7 +202,11 @@ struct CodexStatusCard: View {
                         
                         Spacer()
                         
-                        Text(codex.hasResetsAvailable ? "\(codex.availableResetsCount) Available" : "Unavailable")
+                        Text(
+                            codex.availableResetCreditsCount != nil
+                                ? (codex.hasResetsAvailable ? "\(codex.availableResetsCount) Available" : "None Available")
+                                : "Unavailable"
+                        )
                             .font(.system(size: 10, weight: .bold, design: .monospaced))
                             .foregroundColor(codex.hasResetsAvailable ? MacTheme.codexPrimary : .secondary)
                     }

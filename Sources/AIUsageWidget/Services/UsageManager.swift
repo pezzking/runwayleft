@@ -1,5 +1,6 @@
 import Foundation
 import Combine
+import AppKit
 
 class UsageManager: ObservableObject {
     static let shared = UsageManager()
@@ -18,12 +19,20 @@ class UsageManager: ObservableObject {
         }
     }
     
+    @Published var showQuotaInMenuBar: Bool = true {
+        didSet {
+            UserDefaults.standard.set(showQuotaInMenuBar, forKey: "showQuotaInMenuBar")
+        }
+    }
+    
     private var timer: Timer?
     private var cancellables = Set<AnyCancellable>()
     
     init() {
         let savedRefreshInterval = UserDefaults.standard.object(forKey: "refreshIntervalSeconds") as? Double ?? 60.0
         self.refreshIntervalSeconds = savedRefreshInterval
+        let savedShowQuota = UserDefaults.standard.object(forKey: "showQuotaInMenuBar") as? Bool ?? true
+        self.showQuotaInMenuBar = savedShowQuota
         
         refreshData()
         setupTimer()
@@ -116,8 +125,40 @@ class UsageManager: ObservableObject {
         }
     }
     
+    var menuBarImage: NSImage {
+        let total = codexData.todayTokens + claudeData.todayTokens
+        let totalStr = Self.formatTokens(total)
+        let claudePct = claudeData.hasLiveStatus ? Int(round(claudeData.sessionUsedPct)) : nil
+        let codexPct = codexData.weeklyLimitUsedPct != nil ? Int(round(codexData.weeklyLimitUsedPct!)) : nil
+        
+        return BrandAssets.shared.createMenuBarImage(
+            totalTokensText: totalStr,
+            claudePct: claudePct,
+            codexPct: codexPct,
+            showQuota: showQuotaInMenuBar
+        )
+    }
+    
     var menuBarTitle: String {
         let total = codexData.todayTokens + claudeData.todayTokens
-        return "⚡️ \(Self.formatTokens(total))"
+        let tokensStr = "⚡️ \(Self.formatTokens(total))"
+        
+        guard showQuotaInMenuBar else {
+            return tokensStr
+        }
+        
+        var parts: [String] = [tokensStr]
+        
+        if claudeData.hasLiveStatus {
+            let claudePct = Int(round(claudeData.sessionUsedPct))
+            parts.append("🧠 \(claudePct)%")
+        }
+        
+        if let codexWeekly = codexData.weeklyLimitUsedPct {
+            let codexPct = Int(round(codexWeekly))
+            parts.append("💻 \(codexPct)%")
+        }
+        
+        return parts.joined(separator: "  ")
     }
 }

@@ -178,6 +178,7 @@ struct ModernProgressBar: View {
 struct GlassSegmentButton: View {
     let title: String
     let icon: String
+    var brandImage: NSImage? = nil
     let isSelected: Bool
     let action: () -> Void
     
@@ -186,8 +187,16 @@ struct GlassSegmentButton: View {
     var body: some View {
         Button(action: action) {
             HStack(spacing: 3.5) {
-                Image(systemName: icon)
-                    .font(.system(size: 10, weight: isSelected ? .bold : .medium))
+                if let brandImg = brandImage {
+                    Image(nsImage: brandImg)
+                        .resizable()
+                        .aspectRatio(contentMode: .fit)
+                        .frame(width: 11, height: 11)
+                } else {
+                    Image(systemName: icon)
+                        .font(.system(size: 10, weight: isSelected ? .bold : .medium))
+                }
+                
                 Text(title)
                     .font(.system(size: 10, weight: isSelected ? .semibold : .medium))
                     .lineLimit(1)

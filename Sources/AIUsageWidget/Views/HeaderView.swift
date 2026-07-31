@@ -1,4 +1,5 @@
 import SwiftUI
+import AppKit
 
 enum AppTab: String, CaseIterable, Identifiable {
     case overview = "Overview"
@@ -16,6 +17,14 @@ enum AppTab: String, CaseIterable, Identifiable {
         case .codex: return "terminal.fill"
         case .models: return "cpu.fill"
         case .settings: return "gearshape.fill"
+        }
+    }
+    
+    var brandImage: NSImage? {
+        switch self {
+        case .claude: return BrandAssets.shared.claudeIcon14
+        case .codex: return BrandAssets.shared.codexIcon14
+        default: return nil
         }
     }
 }
@@ -110,6 +119,7 @@ struct HeaderView: View {
                     GlassSegmentButton(
                         title: tab.rawValue,
                         icon: tab.iconName,
+                        brandImage: tab.brandImage,
                         isSelected: selectedTab == tab
                     ) {
                         withAnimation(.spring(response: 0.3, dampingFraction: 0.75)) {

@@ -15,8 +15,9 @@ rm -rf "$BUNDLE_DIR"
 mkdir -p "$MacOS_DIR"
 mkdir -p "$RESOURCES_DIR"
 
-echo "🚚 Copying compiled binary..."
+echo "🚚 Copying compiled binary and brand assets..."
 cp ".build/release/AIUsageWidget" "$MacOS_DIR/AIUsageWidget"
+cp assets/*.png "$RESOURCES_DIR/" 2>/dev/null || true
 
 echo "📄 Creating Info.plist..."
 cat << 'EOF' > "$CONTENTS_DIR/Info.plist"
@@ -59,6 +60,7 @@ EOF
 chmod +x "$MacOS_DIR/AIUsageWidget"
 
 echo "🔏 Code-signing app bundle with entitlements..."
+xattr -cr "$BUNDLE_DIR"
 codesign --force --deep --options runtime --entitlements Entitlements.plist --sign - "$BUNDLE_DIR"
 
 echo "✅ App bundle created and signed successfully at build/$APP_NAME"

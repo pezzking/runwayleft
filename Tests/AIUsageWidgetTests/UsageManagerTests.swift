@@ -58,4 +58,41 @@ final class UsageManagerTests: XCTestCase {
         XCTAssertNil(codex.todayUsage)
         XCTAssertEqual(codex.todayTokens, 0)
     }
+
+    func testApplyResetCreditsParsesAvailableCreditsWithSequentialIndices() {
+        let samplePayload: [String: Any] = [
+            "availableCount": 2,
+            "credits": [
+                [
+                    "id": "c1",
+                    "status": "used",
+                    "title": "Used reset"
+                ],
+                [
+                    "id": "c2",
+                    "status": "AVAILABLE",
+                    "expiresAt": 1785529424.0,
+                    "title": "Full reset"
+                ],
+                [
+                    "id": "c3",
+                    "status": "available",
+                    "expiresAt": 1786557880.0,
+                    "title": "Bonus reset"
+                ]
+            ]
+        ]
+
+        var data = CodexUsageData()
+        CodexDataReader.shared.applyResetCredits(samplePayload, to: &data)
+
+        XCTAssertEqual(data.availableResetCreditsCount, 2)
+        XCTAssertEqual(data.availableResetsCount, 2)
+        XCTAssertTrue(data.hasResetsAvailable)
+        XCTAssertEqual(data.resets.count, 2)
+        XCTAssertEqual(data.resets[0].index, 1)
+        XCTAssertEqual(data.resets[0].name, "Full reset")
+        XCTAssertEqual(data.resets[1].index, 2)
+        XCTAssertEqual(data.resets[1].name, "Bonus reset")
+    }
 }
