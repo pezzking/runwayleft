@@ -64,8 +64,8 @@ class BrandAssets {
     
     func createMenuBarImage(
         totalTokensText: String,
-        claudePct: Int?,
-        codexPct: Int?,
+        claudeText: String?,
+        codexText: String?,
         showQuota: Bool
     ) -> NSImage {
         let font = NSFont.monospacedDigitSystemFont(ofSize: 11.5, weight: .bold)
@@ -81,12 +81,12 @@ class BrandAssets {
             (boltImg, totalTokensText)
         ]
         
-        if showQuota, let cPct = claudePct {
-            elements.append((claudeRaw, "\(cPct)%"))
+        if showQuota, let cText = claudeText {
+            elements.append((claudeRaw, cText))
         }
         
-        if showQuota, let xPct = codexPct {
-            elements.append((codexRaw, "\(xPct)%"))
+        if showQuota, let xText = codexText {
+            elements.append((codexRaw, xText))
         }
         
         let textAttrs: [NSAttributedString.Key: Any] = [

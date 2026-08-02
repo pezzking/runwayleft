@@ -128,13 +128,26 @@ class UsageManager: ObservableObject {
     var menuBarImage: NSImage {
         let total = codexData.todayTokens + claudeData.todayTokens
         let totalStr = Self.formatTokens(total)
-        let claudePct = claudeData.hasLiveStatus ? Int(round(claudeData.sessionUsedPct)) : nil
-        let codexPct = codexData.weeklyLimitUsedPct != nil ? Int(round(codexData.weeklyLimitUsedPct!)) : nil
+        let claudeText: String?
+        if claudeData.hasLiveStatus {
+            claudeText = "\(Int(round(claudeData.sessionUsedPct)))%"
+        } else if claudeData.grandTotalTokens > 0 {
+            claudeText = "Expired"
+        } else {
+            claudeText = nil
+        }
+        
+        let codexText: String?
+        if let weekly = codexData.weeklyLimitUsedPct {
+            codexText = "\(Int(round(weekly)))%"
+        } else {
+            codexText = nil
+        }
         
         return BrandAssets.shared.createMenuBarImage(
             totalTokensText: totalStr,
-            claudePct: claudePct,
-            codexPct: codexPct,
+            claudeText: claudeText,
+            codexText: codexText,
             showQuota: showQuotaInMenuBar
         )
     }
@@ -152,6 +165,8 @@ class UsageManager: ObservableObject {
         if claudeData.hasLiveStatus {
             let claudePct = Int(round(claudeData.sessionUsedPct))
             parts.append("🧠 \(claudePct)%")
+        } else if claudeData.grandTotalTokens > 0 {
+            parts.append("🧠 Expired")
         }
         
         if let codexWeekly = codexData.weeklyLimitUsedPct {

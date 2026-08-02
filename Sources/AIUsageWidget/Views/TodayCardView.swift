@@ -72,35 +72,46 @@ struct ClaudeStatusCard: View {
                 }
                 
                 // Current Session
-                ProgressBarRow(
-                    label: "Current session",
-                    valueText: String(format: "%.0f%% used", sessionPct),
-                    progressPct: sessionPct,
-                    resetText: claude.sessionReset.isEmpty ? nil : "resets \(claude.sessionReset)",
-                    accentGradient: progressGradient(usedPct: sessionPct)
-                )
-                
-                Divider().opacity(0.2)
-                
-                // Current Week (All Models)
-                ProgressBarRow(
-                    label: "Current week (all models)",
-                    valueText: String(format: "%.0f%% used", weekAllPct),
-                    progressPct: weekAllPct,
-                    resetText: claude.weekAllModelsReset.isEmpty ? nil : "resets \(claude.weekAllModelsReset)",
-                    accentGradient: progressGradient(usedPct: weekAllPct)
-                )
-                
-                Divider().opacity(0.2)
-                
-                // Current Week (Fable)
-                ProgressBarRow(
-                    label: "Current week (\(claude.weekModelLabel))",
-                    valueText: String(format: "%.0f%% used", weekFablePct),
-                    progressPct: weekFablePct,
-                    resetText: claude.weekFableReset.isEmpty ? nil : "resets \(claude.weekFableReset)",
-                    accentGradient: progressGradient(usedPct: weekFablePct)
-                )
+                if claude.hasLiveStatus {
+                    ProgressBarRow(
+                        label: "Current session",
+                        valueText: String(format: "%.0f%% used", sessionPct),
+                        progressPct: sessionPct,
+                        resetText: claude.sessionReset.isEmpty ? nil : "resets \(claude.sessionReset)",
+                        accentGradient: progressGradient(usedPct: sessionPct)
+                    )
+                    
+                    Divider().opacity(0.2)
+                    
+                    // Current Week (All Models)
+                    ProgressBarRow(
+                        label: "Current week (all models)",
+                        valueText: String(format: "%.0f%% used", weekAllPct),
+                        progressPct: weekAllPct,
+                        resetText: claude.weekAllModelsReset.isEmpty ? nil : "resets \(claude.weekAllModelsReset)",
+                        accentGradient: progressGradient(usedPct: weekAllPct)
+                    )
+                    
+                    Divider().opacity(0.2)
+                    
+                    // Current Week (Fable)
+                    ProgressBarRow(
+                        label: "Current week (\(claude.weekModelLabel))",
+                        valueText: String(format: "%.0f%% used", weekFablePct),
+                        progressPct: weekFablePct,
+                        resetText: claude.weekFableReset.isEmpty ? nil : "resets \(claude.weekFableReset)",
+                        accentGradient: progressGradient(usedPct: weekFablePct)
+                    )
+                } else {
+                    HStack {
+                        Text("Session limits")
+                            .font(.system(size: 11, weight: .semibold))
+                        Spacer()
+                        Text("Local session expired")
+                            .font(.system(size: 9, weight: .medium))
+                            .foregroundColor(.secondary)
+                    }
+                }
             }
         }
     }
@@ -323,3 +334,4 @@ func progressTextColor(usedPct: Double) -> Color {
         return MacTheme.success
     }
 }
+
