@@ -1,0 +1,73 @@
+import Foundation
+
+struct ClaudeDailyActivity: Identifiable, Codable {
+    var id: String { date }
+    let date: String
+    let messageCount: Int
+    let sessionCount: Int
+    let toolCallCount: Int
+}
+
+struct ClaudeDailyModelTokens: Identifiable {
+    var id: String { date }
+    let date: String
+    let tokensByModel: [String: Int64]
+    
+    var totalTokens: Int64 {
+        tokensByModel.values.reduce(0, +)
+    }
+}
+
+struct ClaudeModelDetail: Identifiable {
+    var id: String { modelName }
+    let modelName: String
+    let inputTokens: Int64
+    let outputTokens: Int64
+    let cacheReadInputTokens: Int64
+    let cacheCreationInputTokens: Int64
+    
+    // Excludes cacheReadInputTokens: cache reads repeat on nearly every
+    // turn as prior context gets replayed, so counting them here would
+    // dwarf every other figure in the app and break comparability with
+    // the daily totals, which use the same in+out+cache_creation definition.
+    var totalTokens: Int64 {
+        inputTokens + outputTokens + cacheCreationInputTokens
+    }
+}
+
+struct ClaudeUsageData {
+    var dailyActivity: [ClaudeDailyActivity] = []
+    var dailyModelTokens: [ClaudeDailyModelTokens] = []
+    var modelUsage: [ClaudeModelDetail] = []
+    var totalSessions: Int = 0
+    var totalMessages: Int = 0
+    var lastComputedDate: String = ""
+    
+    // Official Live Subscription Quota Status (from claude -p /usage)
+    var sessionUsedPct: Double = 0.0
+    var sessionReset: String = ""
+    var weekAllModelsPct: Double = 0.0
+    var weekAllModelsReset: String = ""
+    var weekFablePct: Double = 0.0
+    var weekFableReset: String = ""
+    var weekModelLabel: String = "Model-specific weekly limit"
+    var hasLiveStatus: Bool = false
+    
+    var todayActivity: ClaudeDailyActivity? {
+        let todayStr = DayFormat.today
+        return dailyActivity.first { $0.date == todayStr }
+    }
+
+    var todayTokens: Int64 {
+        let todayStr = DayFormat.today
+        return dailyModelTokens.first { $0.date == todayStr }?.totalTokens ?? 0
+    }
+    
+    var todayMessages: Int {
+        todayActivity?.messageCount ?? 0
+    }
+    
+    var grandTotalTokens: Int64 {
+        modelUsage.reduce(0) { $0 + $1.totalTokens }
+    }
+}

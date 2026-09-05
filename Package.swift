@@ -2,23 +2,23 @@
 import PackageDescription
 
 let package = Package(
-    name: "AIUsageWidget",
+    name: "RunwayLeft",
     platforms: [
         .macOS(.v13)
     ],
     products: [
-        .executable(name: "AIUsageWidget", targets: ["AIUsageWidget"])
+        .executable(name: "RunwayLeft", targets: ["RunwayLeft"])
     ],
     targets: [
         .executableTarget(
-            name: "AIUsageWidget",
+            name: "RunwayLeft",
             linkerSettings: [
                 .linkedLibrary("sqlite3")
             ]
         ),
         .testTarget(
-            name: "AIUsageWidgetTests",
-            dependencies: ["AIUsageWidget"]
+            name: "RunwayLeftTests",
+            dependencies: ["RunwayLeft"]
         )
     ]
 )

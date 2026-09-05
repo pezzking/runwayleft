@@ -1,6 +1,47 @@
+# macOS
 .DS_Store
+.AppleDouble
+.LSOverride
+._*
+.Spotlight-V100
+.Trashes
+
+# Swift Package Manager
 .build/
-build/
 .swiftpm/
-*.xcodeproj/xcuserdata/
-*.xcworkspace/xcuserdata/
+Packages/
+*.xcodeproj
+*.xcworkspace
+!default.xcworkspace
+
+# Xcode
+DerivedData/
+xcuserdata/
+*.xcuserstate
+*.xcscmblueprint
+*.moved-aside
+*.hmap
+*.ipa
+*.dSYM
+*.dSYM.zip
+timeline.xctimeline
+playground.xcworkspace
+
+# Outputs of build_app.sh (the entitlements file is regenerated on every build)
+build/
+Entitlements.plist
+
+# Editors and tooling
+.vscode/
+.idea/
+.claude/settings.local.json
+*.swp
+*.swo
+*~
+
+# Logs and temp files
+*.log
+*.tmp
+
+# Local notes and scratch material (not part of the project)
+_examples/
