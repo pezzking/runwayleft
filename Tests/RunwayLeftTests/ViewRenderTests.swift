@@ -37,21 +37,10 @@ final class ViewRenderTests: XCTestCase {
         }
     }
 
-    private var createdSuites: [String] = []
-
-    override func tearDown() {
-        for suite in createdSuites {
-            UserDefaults(suiteName: suite)?.removePersistentDomain(forName: suite)
-        }
-        createdSuites.removeAll()
-        super.tearDown()
-    }
-
     private func makeManager(textSize: TextSize, withLiteLLM: Bool = false, healthyStatus: Bool = false) -> UsageManager {
-        let suite = "dev.runwayleft.tests.\(UUID().uuidString)"
-        createdSuites.append(suite)
-        let defaults = UserDefaults(suiteName: suite)!
-        defaults.removePersistentDomain(forName: suite)
+        // In memory on purpose: a UserDefaults suite leaves an empty plist in
+        // ~/Library/Preferences for every test, even after removePersistentDomain.
+        let defaults = InMemorySettingsStore()
         if withLiteLLM {
             // Set before init so the enable flag does not trigger a fetch.
             defaults.set(true, forKey: "liteLLMEnabled")

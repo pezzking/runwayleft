@@ -79,6 +79,9 @@ class UsageManager: ObservableObject {
     @Published var lastRefreshed: Date = Date()
     @Published var isRefreshing: Bool = false
     @Published var selectedTab: AppTab = .overview
+    /// Whether the menu bar popover is open. Bound to the `MenuBarExtra` scene through
+    /// MenuBarExtraAccess, so setting it opens or closes the popover and clicks keep it in sync.
+    @Published var isPopoverPresented = false
 
     // MARK: - Provider Status
 
@@ -354,12 +357,12 @@ class UsageManager: ObservableObject {
 
     // MARK: - Lifecycle
 
-    private let defaults: UserDefaults
+    private let defaults: SettingsStore
     private var timer: Timer?
     private var cancellables = Set<AnyCancellable>()
 
     init(
-        defaults: UserDefaults = .standard,
+        defaults: SettingsStore = UserDefaults.standard,
         statusService: VendorStatusService = .shared,
         liteLLMReader: LiteLLMDataReader = LiteLLMDataReader(),
         credentialStore: CredentialStore = CredentialStore(),
@@ -370,8 +373,8 @@ class UsageManager: ObservableObject {
         self.liteLLMReader = liteLLMReader
         self.credentialStore = credentialStore
 
-        if defaults === UserDefaults.standard {
-            Self.migrateLegacyDefaultsIfNeeded(into: defaults)
+        if let standard = defaults as? UserDefaults, standard === UserDefaults.standard {
+            Self.migrateLegacyDefaultsIfNeeded(into: standard)
         }
 
         _liteLLMEnabled = Published(initialValue: defaults.object(forKey: Keys.liteLLMEnabled) as? Bool ?? false)

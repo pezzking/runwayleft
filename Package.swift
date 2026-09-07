@@ -9,9 +9,16 @@ let package = Package(
     products: [
         .executable(name: "RunwayLeft", targets: ["RunwayLeft"])
     ],
+    dependencies: [
+        // Opens and closes the MenuBarExtra popover programmatically; SwiftUI has no public API for it.
+        .package(url: "https://github.com/orchetect/MenuBarExtraAccess", from: "1.3.1")
+    ],
     targets: [
         .executableTarget(
             name: "RunwayLeft",
+            dependencies: [
+                .product(name: "MenuBarExtraAccess", package: "MenuBarExtraAccess")
+            ],
             linkerSettings: [
                 .linkedLibrary("sqlite3")
             ]

@@ -59,6 +59,7 @@ Everything is read from your own machine. The only network calls are the two pub
 - Brand icons or plain "C" and "X" labels, and a per-provider show/hide toggle.
 - When a provider's status page reports a problem, its metric gets an outline: orange for degraded, red for an outage.
 - A live preview in Settings shows exactly what the menu bar will look like.
+- Right-click (or Control-click) the item for a quick menu: Refresh Now, Open Overview, Settings, Launch at Login, and Quit.
 
 ### Provider status
 
