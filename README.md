@@ -113,7 +113,7 @@ The refresh timer carries tolerance so macOS can coalesce wakeups, nothing anima
 | Claude Code | Daily messages, sessions, tool calls, tokens per model | `~/.claude/stats-cache.json` |
 | Claude Code | Today's live tokens and activity | `~/.claude/projects/**/*.jsonl`, scanned incrementally |
 | Codex | 5-hour and 7-day windows, plan, reset credits | `codex app-server --stdio`, `account/rateLimits/read` |
-| Codex | Fallback for the windows when the app-server is unavailable | Newest `~/.codex/sessions/*.jsonl` |
+| Codex | Fallback for any window the app-server did not report, if the logged window has not reset yet | Newest `~/.codex/sessions/*.jsonl` |
 | Codex | Account email and plan, configured model | `~/.codex/auth.json`, `~/.codex/config.toml` |
 | Codex | Sessions and tokens per day and per model | `~/.codex/state_5.sqlite` (read-only) |
 | Anthropic, OpenAI | Service status, incidents, maintenance | `status.claude.com`, `status.openai.com` (`/api/v2/summary.json`) |

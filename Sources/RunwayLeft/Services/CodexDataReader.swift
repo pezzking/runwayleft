@@ -148,8 +148,11 @@ class CodexDataReader {
 
         if let snapshot = liveSnapshot {
             snapshot.apply(to: &data)
-        } else {
-            applyLatestRateLimits(to: &data)
+        }
+        // Whatever the app-server did not report comes from the session logs.
+        // Live values are never overwritten.
+        if data.sessionLimitUsedPct == nil || data.weeklyLimitUsedPct == nil {
+            fillRateLimitsFromSessionLogs(into: &data, now: now)
         }
     }
 
@@ -276,9 +279,21 @@ class CodexDataReader {
         }
     }
 
-    /// Fallback: the newest rate-limit snapshot written into the CLI's own
-    /// session logs. Used only when the app-server is unavailable.
-    private func applyLatestRateLimits(to data: inout CodexUsageData) {
+    /// A session log last written longer ago than a window lasts cannot hold an
+    /// unexpired snapshot of that window, so such files are not opened at all.
+    private static let weeklyWindowSeconds: TimeInterval = 7 * 24 * 3600
+    private static let sessionWindowSeconds: TimeInterval = 5 * 3600
+
+    /// Fills whichever windows are still empty from the newest session-log
+    /// snapshot that has them. Slots already holding a value are kept, so live
+    /// data always wins. A window whose reset time has passed is skipped: the
+    /// snapshot then says nothing about the current window, and showing it would
+    /// pair a stale percentage with a reset date in the past.
+    func fillRateLimitsFromSessionLogs(into data: inout CodexUsageData, now: Date = Date()) {
+        guard data.sessionLimitUsedPct == nil || data.weeklyLimitUsedPct == nil else { return }
+        let maxAge = data.weeklyLimitUsedPct == nil ? Self.weeklyWindowSeconds : Self.sessionWindowSeconds
+        let cutoff = now.addingTimeInterval(-maxAge)
+
         guard let enumerator = FileManager.default.enumerator(
             at: URL(fileURLWithPath: sessionsDirectoryPath),
             includingPropertiesForKeys: [.contentModificationDateKey, .isRegularFileKey],
@@ -288,13 +303,18 @@ class CodexDataReader {
         let files = enumerator.compactMap { item -> (URL, Date)? in
             guard let url = item as? URL, url.pathExtension == "jsonl",
                   let values = try? url.resourceValues(forKeys: [.contentModificationDateKey, .isRegularFileKey]),
-                  values.isRegularFile == true else { return nil }
-            return (url, values.contentModificationDate ?? .distantPast)
+                  values.isRegularFile == true,
+                  let modified = values.contentModificationDate, modified >= cutoff else { return nil }
+            return (url, modified)
         }
         .sorted { $0.1 > $1.1 }
         .prefix(20)
 
-        for (url, _) in files {
+        let sessionCutoff = now.addingTimeInterval(-Self.sessionWindowSeconds)
+        for (url, modified) in files {
+            // Newest first, so once only the 5-hour slot is left, a file older
+            // than five hours ends the scan rather than being read for nothing.
+            if data.weeklyLimitUsedPct != nil, modified < sessionCutoff { break }
             guard let contents = try? String(contentsOf: url, encoding: .utf8) else { continue }
             for line in contents.split(separator: "\n").reversed() {
                 guard let lineData = line.data(using: .utf8),
@@ -302,14 +322,8 @@ class CodexDataReader {
                       let payload = root["payload"] as? [String: Any],
                       let rateLimits = payload["rate_limits"] as? [String: Any] else { continue }
 
-                for key in ["primary", "secondary"] {
-                    guard let window = rateLimits[key] as? [String: Any],
-                          let used = (window["used_percent"] as? NSNumber)?.doubleValue else { continue }
-                    let resetTimestamp = (window["resets_at"] as? NSNumber)?.doubleValue
-                    let minutes = (window["window_minutes"] as? NSNumber)?.intValue
-                    Self.applyRateLimitWindow(usedPercent: used, resetsAt: resetTimestamp, minutes: minutes, to: &data)
-                }
-                return
+                Self.applyRateLimits(rateLimits, to: &data, onlyIfMissing: true, expiredBefore: now)
+                if data.sessionLimitUsedPct != nil && data.weeklyLimitUsedPct != nil { return }
             }
         }
     }
@@ -417,37 +431,72 @@ class CodexDataReader {
         return false
     }
 
-    /// Applies both windows of an app-server `rateLimits` object.
-    static func applyRateLimits(_ limits: [String: Any], to data: inout CodexUsageData) {
-        for key in ["primary", "secondary"] {
+    /// Applies the `primary` and `secondary` windows of a rate-limit object in
+    /// either spelling: the app-server's camelCase (`usedPercent`,
+    /// `windowDurationMins`, `resetsAt`) or the session logs' snake_case
+    /// (`used_percent`, `window_minutes`, `resets_at`).
+    ///
+    /// - Parameters:
+    ///   - onlyIfMissing: keep slots that already hold a value.
+    ///   - expiredBefore: skip a window whose reset time is earlier than this.
+    static func applyRateLimits(
+        _ limits: [String: Any],
+        to data: inout CodexUsageData,
+        onlyIfMissing: Bool = false,
+        expiredBefore: Date? = nil
+    ) {
+        for (key, slot) in [("primary", RateLimitWindow.session), ("secondary", .weekly)] {
             guard let window = limits[key] as? [String: Any],
-                  let used = (window["usedPercent"] as? NSNumber)?.doubleValue else { continue }
-            let resetsAt = (window["resetsAt"] as? NSNumber)?.doubleValue
-            let minutes = (window["windowDurationMins"] as? NSNumber)?.intValue
-            applyRateLimitWindow(usedPercent: used, resetsAt: resetsAt, minutes: minutes, to: &data)
+                  let used = number(in: window, "usedPercent", "used_percent")?.doubleValue else { continue }
+            let resetsAt = number(in: window, "resetsAt", "resets_at")?.doubleValue
+            let minutes = number(in: window, "windowDurationMins", "window_minutes")?.intValue
+            if let expiredBefore, let resetsAt, Date(timeIntervalSince1970: resetsAt) < expiredBefore { continue }
+            applyRateLimitWindow(
+                usedPercent: used,
+                resetsAt: resetsAt,
+                minutes: minutes,
+                positionalSlot: slot,
+                to: &data,
+                onlyIfMissing: onlyIfMissing
+            )
         }
         if let planType = limits["planType"] as? String, !planType.isEmpty {
             data.accountPlan = planType.capitalized
         }
     }
 
-    /// Routes one window to the session or weekly slot by its duration. A
-    /// window of unknown duration fills whichever slot is still empty, weekly
-    /// first, which matches how older session logs were read.
-    static func applyRateLimitWindow(usedPercent: Double, resetsAt: Double?, minutes: Int?, to data: inout CodexUsageData) {
+    private static func number(in window: [String: Any], _ camelCase: String, _ snakeCase: String) -> NSNumber? {
+        (window[camelCase] as? NSNumber) ?? (window[snakeCase] as? NSNumber)
+    }
+
+    /// Routes one window to the session or weekly slot by its duration. The
+    /// duration always wins: session logs have carried the weekly window alone
+    /// under `primary`. Only without one does the slot follow the key, `primary`
+    /// as the 5-hour window and `secondary` as the weekly one, which is how the
+    /// app-server orders them.
+    static func applyRateLimitWindow(
+        usedPercent: Double,
+        resetsAt: Double?,
+        minutes: Int?,
+        positionalSlot: RateLimitWindow,
+        to data: inout CodexUsageData,
+        onlyIfMissing: Bool = false
+    ) {
         let used = max(0, min(100, usedPercent))
         let resetText = resetsAt.map { "resets \(formatResetDate(Date(timeIntervalSince1970: $0)))" } ?? ""
 
         var window = classifyWindow(minutes: minutes)
         if window == .unknown {
-            window = data.weeklyLimitUsedPct == nil ? .weekly : .session
+            window = positionalSlot
         }
 
         switch window {
         case .weekly:
+            guard !onlyIfMissing || data.weeklyLimitUsedPct == nil else { return }
             data.weeklyLimitUsedPct = used
             data.weeklyLimitResetText = resetText
         case .session:
+            guard !onlyIfMissing || data.sessionLimitUsedPct == nil else { return }
             data.sessionLimitUsedPct = used
             data.sessionLimitResetText = resetText
         case .unknown:

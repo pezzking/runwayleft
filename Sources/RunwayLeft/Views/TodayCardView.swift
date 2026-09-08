@@ -154,6 +154,30 @@ struct CodexStatusCard: View {
         return parts.isEmpty ? nil : parts.joined(separator: "  ·  ")
     }
 
+    /// A window the provider did not report keeps its row, so its absence is
+    /// visible instead of the card quietly shrinking to one bar.
+    @ViewBuilder
+    private func limitRow(label: String, usedPct: Double?, resetText: String) -> some View {
+        if let usedPct {
+            ProgressBarRow(
+                label: label,
+                valueText: String(format: "%.0f%% used", usedPct),
+                progressPct: usedPct,
+                resetText: resetText.isEmpty ? nil : capitalizedFirst(resetText),
+                accentGradient: progressGradient(usedPct: usedPct)
+            )
+        } else {
+            HStack {
+                Text(label)
+                    .appFont(.body, weight: .semibold)
+                Spacer()
+                Text("Not reported")
+                    .appFont(.caption, weight: .medium)
+                    .foregroundColor(.secondary)
+            }
+        }
+    }
+
     var body: some View {
         GlowingBrandCard(
             brandGradient: MacTheme.codexGradient,
@@ -175,29 +199,9 @@ struct CodexStatusCard: View {
                 Divider().opacity(0.25)
 
                 if codex.hasRateLimits {
-                    if let sessionPct = codex.sessionLimitUsedPct {
-                        ProgressBarRow(
-                            label: "Current session · 5 hours",
-                            valueText: String(format: "%.0f%% used", sessionPct),
-                            progressPct: sessionPct,
-                            resetText: codex.sessionLimitResetText.isEmpty ? nil : capitalizedFirst(codex.sessionLimitResetText),
-                            accentGradient: progressGradient(usedPct: sessionPct)
-                        )
-                    }
-
-                    if codex.sessionLimitUsedPct != nil && codex.weeklyLimitUsedPct != nil {
-                        Divider().opacity(0.25)
-                    }
-
-                    if let weeklyPct = codex.weeklyLimitUsedPct {
-                        ProgressBarRow(
-                            label: "Current week",
-                            valueText: String(format: "%.0f%% used", weeklyPct),
-                            progressPct: weeklyPct,
-                            resetText: codex.weeklyLimitResetText.isEmpty ? nil : capitalizedFirst(codex.weeklyLimitResetText),
-                            accentGradient: progressGradient(usedPct: weeklyPct)
-                        )
-                    }
+                    limitRow(label: "Current session · 5 hours", usedPct: codex.sessionLimitUsedPct, resetText: codex.sessionLimitResetText)
+                    Divider().opacity(0.25)
+                    limitRow(label: "Current week", usedPct: codex.weeklyLimitUsedPct, resetText: codex.weeklyLimitResetText)
                 } else {
                     HStack {
                         Text("Rate limits")
