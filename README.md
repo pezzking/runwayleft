@@ -26,6 +26,22 @@ Everything is read from your own machine. The only network calls are the two pub
 
 ---
 
+## Quickstart
+
+```bash
+brew install --cask pezzking/tap/runwayleft
+```
+
+The app is ad-hoc signed, not notarized, so macOS blocks the first launch of a downloaded copy. Either open System Settings › Privacy & Security and choose Open Anyway, or clear the quarantine flag once before launching:
+
+```bash
+xattr -dr com.apple.quarantine /Applications/RunwayLeft.app
+```
+
+RunwayLeft appears in the menu bar. Full install notes, upgrading, and building from source are under [Install](#install).
+
+---
+
 ## At a glance
 
 | Overview | Models |
