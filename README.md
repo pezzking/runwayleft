@@ -203,6 +203,4 @@ Conventions and gotchas that the code does not say are in [CLAUDE.md](CLAUDE.md)
 
 ## License
 
-MIT. See [LICENSE](LICENSE).
-
-RunwayLeft started as a fork of [ai_usage_widget](https://github.com/meet30997/ai_usage_widget) by meet30997, whose copyright notice remains in the license.
+MIT.
