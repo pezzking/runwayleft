@@ -11,7 +11,7 @@ README_SHOTS_DIR=assets swift test --filter ViewRenderTests/testReadmeScreenshot
 ./build_app.sh                               # ad-hoc signed bundle at build/RunwayLeft.app
 ```
 
-Install loop used in this repo: quit the running copy, `ditto` the bundle over `/Applications/RunwayLeft.app`, `open` it, confirm with `pgrep -f "RunwayLeft.app/Contents/MacOS/RunwayLeft"`.
+Install loop used in this repo: quit the running copy, `ditto` the bundle over `/Applications/RunwayLeft.app`, `open` it, confirm with `pgrep -f "RunwayLeft.app/Contents/MacOS/RunwayLeft"`. Since 2026-09-09 the copy in `/Applications` is the Homebrew cask install (`brew list --cask runwayleft`); the `ditto` loop still works over it for testing, and the next `brew upgrade --cask runwayleft` replaces it with the released build. Homebrew 6 has no `--no-quarantine`; a downloaded copy needs `/usr/bin/xattr -dr com.apple.quarantine /Applications/RunwayLeft.app` (or Open Anyway in System Settings) before the first launch.
 
 Screen capture is not available to agents here. The offscreen render test is the visual check: run it with `SNAPSHOT_DIR` set and Read the PNGs.
 

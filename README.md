@@ -136,13 +136,13 @@ The refresh timer carries tolerance so macOS can coalesce wakeups, nothing anima
 brew install --cask pezzking/tap/runwayleft
 ```
 
-The app is ad-hoc signed, not notarized, so macOS blocks the first launch of a downloaded copy. Open System Settings › Privacy & Security and choose Open Anyway, or skip the prompt by installing without the quarantine flag:
+The app is ad-hoc signed, not notarized, so macOS blocks the first launch of a downloaded copy. Either open System Settings › Privacy & Security and choose Open Anyway, or clear the quarantine flag once before launching:
 
 ```bash
-brew install --cask --no-quarantine pezzking/tap/runwayleft
+xattr -dr com.apple.quarantine /Applications/RunwayLeft.app
 ```
 
-Upgrade with `brew upgrade --cask runwayleft`. Settings carry over.
+Upgrade with `brew upgrade --cask runwayleft`, then clear the flag again. Settings carry over.
 
 ### Build from source
 
