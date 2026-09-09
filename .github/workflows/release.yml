@@ -49,6 +49,9 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
+          # actions/checkout turns the annotated tag into a lightweight one, which
+          # would make --notes-from-tag fall back to the commit message.
+          git fetch --force origin "refs/tags/$GITHUB_REF_NAME:refs/tags/$GITHUB_REF_NAME"
           gh release create "$GITHUB_REF_NAME" \
             "RunwayLeft-$VERSION.zip" \
             "RunwayLeft-$VERSION.zip.sha256" \
