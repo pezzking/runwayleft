@@ -133,7 +133,7 @@ The refresh timer carries tolerance so macOS can coalesce wakeups, nothing anima
 ### Build and install
 
 ```bash
-git clone https://github.com/edicorAi/runwayleft.git
+git clone https://github.com/pezzking/runwayleft.git
 cd runwayleft
 
 swift test          # no network, about 20 seconds
