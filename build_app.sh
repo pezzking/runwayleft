@@ -1,9 +1,6 @@
 #!/bin/bash
 set -e
 
-echo "🔨 Building RunwayLeft in Release mode..."
-swift build -c release
-
 APP_NAME="RunwayLeft.app"
 EXECUTABLE="RunwayLeft"
 BUNDLE_DIR="build/$APP_NAME"
@@ -11,13 +8,26 @@ CONTENTS_DIR="$BUNDLE_DIR/Contents"
 MacOS_DIR="$CONTENTS_DIR/MacOS"
 RESOURCES_DIR="$CONTENTS_DIR/Resources"
 
+# RUNWAYLEFT_UNIVERSAL=1 builds for Apple silicon and Intel in one binary; the
+# release workflow sets it so one download serves every Mac. Local builds stay
+# single-architecture because they take half the time.
+if [ "${RUNWAYLEFT_UNIVERSAL:-0}" = "1" ]; then
+    echo "🔨 Building RunwayLeft in Release mode (universal)..."
+    swift build -c release --arch arm64 --arch x86_64
+    BINARY=".build/apple/Products/Release/$EXECUTABLE"
+else
+    echo "🔨 Building RunwayLeft in Release mode..."
+    swift build -c release
+    BINARY=".build/release/$EXECUTABLE"
+fi
+
 echo "📁 Creating app bundle structure at $BUNDLE_DIR..."
 rm -rf "$BUNDLE_DIR"
 mkdir -p "$MacOS_DIR"
 mkdir -p "$RESOURCES_DIR"
 
 echo "🚚 Copying compiled binary, app icon, and brand assets..."
-cp ".build/release/$EXECUTABLE" "$MacOS_DIR/$EXECUTABLE"
+cp "$BINARY" "$MacOS_DIR/$EXECUTABLE"
 cp assets/*.png "$RESOURCES_DIR/" 2>/dev/null || true
 cp assets/AppIcon.icns "$RESOURCES_DIR/AppIcon.icns"
 

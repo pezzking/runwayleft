@@ -1,0 +1,56 @@
+# Builds the app bundle and attaches it to a GitHub release whenever a version
+# tag is pushed. The tag must match CFBundleShortVersionString in build_app.sh,
+# so a release can never carry a bundle that reports a different version.
+#
+# Release steps: bump the version in build_app.sh, commit, then
+# `git tag -a vX.Y.Z -m "<what changed>"` (the message becomes the release
+# notes) and `git push origin vX.Y.Z`. Then update the cask in
+# pezzking/homebrew-tap with the new version and the sha256 this workflow
+# publishes next to the zip.
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: macos-15
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check the tag against build_app.sh
+        run: |
+          version="$(grep -A1 CFBundleShortVersionString build_app.sh | sed -n 's/.*<string>\(.*\)<\/string>.*/\1/p')"
+          if [ "v$version" != "$GITHUB_REF_NAME" ]; then
+            echo "Tag is $GITHUB_REF_NAME but build_app.sh says $version" >&2
+            exit 1
+          fi
+          echo "VERSION=$version" >> "$GITHUB_ENV"
+
+      - name: Test
+        run: swift test
+
+      - name: Build universal bundle
+        run: RUNWAYLEFT_UNIVERSAL=1 ./build_app.sh
+
+      - name: Package
+        run: |
+          lipo -info "build/RunwayLeft.app/Contents/MacOS/RunwayLeft"
+          ditto -c -k --keepParent "build/RunwayLeft.app" "RunwayLeft-$VERSION.zip"
+          shasum -a 256 "RunwayLeft-$VERSION.zip" | tee "RunwayLeft-$VERSION.zip.sha256"
+
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" \
+            "RunwayLeft-$VERSION.zip" \
+            "RunwayLeft-$VERSION.zip.sha256" \
+            --title "RunwayLeft $VERSION" \
+            --notes-from-tag

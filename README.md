@@ -126,11 +126,25 @@ The refresh timer carries tolerance so macOS can coalesce wakeups, nothing anima
 
 ### Requirements
 
-- macOS 13 Ventura or later
-- Xcode Command Line Tools with Swift 5.9 or later (to build)
+- macOS 13 Ventura or later, Apple silicon or Intel
 - The `claude` CLI and/or the `codex` CLI, signed in
+- Xcode Command Line Tools with Swift 5.9 or later, only if you build from source
 
-### Build and install
+### Homebrew
+
+```bash
+brew install --cask pezzking/tap/runwayleft
+```
+
+The app is ad-hoc signed, not notarized, so macOS blocks the first launch of a downloaded copy. Open System Settings › Privacy & Security and choose Open Anyway, or skip the prompt by installing without the quarantine flag:
+
+```bash
+brew install --cask --no-quarantine pezzking/tap/runwayleft
+```
+
+Upgrade with `brew upgrade --cask runwayleft`. Settings carry over.
+
+### Build from source
 
 ```bash
 git clone https://github.com/pezzking/runwayleft.git
@@ -143,11 +157,7 @@ ditto "build/RunwayLeft.app" "/Applications/RunwayLeft.app"
 open "/Applications/RunwayLeft.app"
 ```
 
-The bundle is ad-hoc signed, not notarized. On first launch Gatekeeper may ask you to confirm; right-click the app and choose Open, or allow it under System Settings › Privacy & Security.
-
-### Upgrading
-
-Quit the running copy, copy the new bundle over the old one with `ditto`, and open it. Settings carry over. If you are coming from a build named "AI Usage Tracker", delete that one; its settings are migrated on first launch.
+A bundle built on your own Mac carries no quarantine flag, so it opens without a prompt. To upgrade, quit the running copy, copy the new bundle over the old one with `ditto`, and open it. Settings carry over. If you are coming from a build named "AI Usage Tracker", delete that one; its settings are migrated on first launch.
 
 ### Launch at login
 
