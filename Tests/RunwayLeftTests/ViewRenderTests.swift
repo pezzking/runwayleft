@@ -100,7 +100,14 @@ final class ViewRenderTests: XCTestCase {
             ClaudeModelDetail(modelName: "claude-sonnet-5", inputTokens: 220_000, outputTokens: 80_000, cacheReadInputTokens: 1_100_000, cacheCreationInputTokens: 90_000)
         ]
         claude.dailyActivity = (0..<6).map { ClaudeDailyActivity(date: dateString(daysAgo: $0), messageCount: 40 + $0 * 7, sessionCount: 3, toolCallCount: 120 - $0 * 9) }.reversed()
-        claude.dailyModelTokens = (0..<14).map { ClaudeDailyModelTokens(date: dateString(daysAgo: $0), tokensByModel: ["m": Int64(150_000 + ($0 * 37_000) % 400_000)]) }
+        // Plain loops with typed locals: closures full of Int64 arithmetic made the
+        // type checker on the CI toolchain give up.
+        var claudeModelTokens: [ClaudeDailyModelTokens] = []
+        for day in 0..<14 {
+            let tokens: Int64 = Int64(150_000 + (day * 37_000) % 400_000)
+            claudeModelTokens.append(ClaudeDailyModelTokens(date: dateString(daysAgo: day), tokensByModel: ["m": tokens]))
+        }
+        claude.dailyModelTokens = claudeModelTokens
 
         var codex = CodexUsageData()
         codex.accountEmail = "someone@example.com"
@@ -118,13 +125,19 @@ final class ViewRenderTests: XCTestCase {
             CodexModelUsage(modelName: "gpt-5.6-sol", sessionCount: 180, totalTokens: 41_000_000),
             CodexModelUsage(modelName: "o4-mini", sessionCount: 32, totalTokens: 7_300_000)
         ]
-        codex.dailyUsage = (0..<14).map { CodexDailyUsage(date: dateString(daysAgo: $0), sessionCount: 2 + $0 % 3, tokensUsed: Int64(90_000 + ($0 * 53_000) % 500_000)) }
-        codex.dailyModelTokens = (0..<14).flatMap { day -> [CodexDailyModelTokens] in
-            [
-                CodexDailyModelTokens(date: dateString(daysAgo: day), modelName: "gpt-5.6-sol", sessionCount: 2, tokens: Int64(70_000 + (day * 41_000) % 400_000)),
-                CodexDailyModelTokens(date: dateString(daysAgo: day), modelName: "o4-mini", sessionCount: 1, tokens: Int64(20_000 + (day * 12_000) % 100_000))
-            ]
+        var codexDaily: [CodexDailyUsage] = []
+        var codexModelTokens: [CodexDailyModelTokens] = []
+        for day in 0..<14 {
+            let date = dateString(daysAgo: day)
+            let dayTokens: Int64 = Int64(90_000 + (day * 53_000) % 500_000)
+            let solTokens: Int64 = Int64(70_000 + (day * 41_000) % 400_000)
+            let miniTokens: Int64 = Int64(20_000 + (day * 12_000) % 100_000)
+            codexDaily.append(CodexDailyUsage(date: date, sessionCount: 2 + day % 3, tokensUsed: dayTokens))
+            codexModelTokens.append(CodexDailyModelTokens(date: date, modelName: "gpt-5.6-sol", sessionCount: 2, tokens: solTokens))
+            codexModelTokens.append(CodexDailyModelTokens(date: date, modelName: "o4-mini", sessionCount: 1, tokens: miniTokens))
         }
+        codex.dailyUsage = codexDaily
+        codex.dailyModelTokens = codexModelTokens
 
         manager.claudeData = claude
         manager.codexData = codex
