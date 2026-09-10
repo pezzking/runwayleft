@@ -302,6 +302,11 @@ class UsageManager: ObservableObject {
     static let defaultPopoverHeight: CGFloat = 560
     static let minPopoverHeight: CGFloat = 400
 
+    /// The usable height of the screen the popover appears on. Republished when
+    /// displays change (see `refreshScreenHeight`) so the frame re-clamps live,
+    /// instead of keeping a height measured on a screen that is no longer there.
+    @Published private(set) var screenHeight: CGFloat = UsageManager.currentScreenHeight
+
     /// Keeps the popover between the minimum height and what fits on screen.
     static func clampPopoverHeight(_ height: CGFloat, screenHeight: CGFloat) -> CGFloat {
         let maxHeight = max(minPopoverHeight, screenHeight - 24)
@@ -309,12 +314,23 @@ class UsageManager: ObservableObject {
         return min(max(rounded, minPopoverHeight), maxHeight)
     }
 
+    /// The natural height stored for a mode, before the screen clamp. Finite and
+    /// no smaller than the minimum, but never capped to the screen: the cap is
+    /// applied at read (`effectivePopoverHeight`), so a smaller display shrinks
+    /// the frame and a larger one restores the full height without a re-measure.
+    static func normalizeStoredHeight(_ height: CGFloat) -> CGFloat {
+        let rounded = height.isFinite ? height.rounded() : defaultPopoverHeight
+        return max(minPopoverHeight, rounded)
+    }
+
     static var currentScreenHeight: CGFloat {
-        NSScreen.main?.visibleFrame.height ?? 900
+        NSScreen.main?.visibleFrame.height
+            ?? NSScreen.screens.first?.visibleFrame.height
+            ?? 900
     }
 
     var maxPopoverHeight: CGFloat {
-        max(Self.minPopoverHeight, Self.currentScreenHeight - 24)
+        max(Self.minPopoverHeight, screenHeight - 24)
     }
 
     /// Tallest height the current screen allows; used by offscreen renders.
@@ -325,28 +341,37 @@ class UsageManager: ObservableObject {
     /// The height the popover frame should use right now.
     var effectivePopoverHeight: CGFloat {
         let target = popoverHeightMode == .fit ? fitHeight : popoverHeight
-        return Self.clampPopoverHeight(target, screenHeight: Self.currentScreenHeight)
+        return Self.clampPopoverHeight(target, screenHeight: screenHeight)
+    }
+
+    /// Republishes the usable screen height. Called with no argument when the
+    /// display configuration changes (a monitor connected or disconnected) so the
+    /// open popover re-clamps at once; the height argument is a test seam.
+    /// Assigns only on a real change.
+    func refreshScreenHeight(_ height: CGFloat = UsageManager.currentScreenHeight) {
+        guard height != screenHeight else { return }
+        screenHeight = height
     }
 
     /// Called by the root view whenever the current tab's natural height changes.
     func reportFitHeight(_ height: CGFloat) {
-        let clamped = Self.clampPopoverHeight(height, screenHeight: Self.currentScreenHeight)
-        guard clamped != fitHeight else { return }
-        fitHeight = clamped
-        defaults.set(Double(clamped), forKey: Keys.lastFitHeight)
+        let natural = Self.normalizeStoredHeight(height)
+        guard natural != fitHeight else { return }
+        fitHeight = natural
+        defaults.set(Double(natural), forKey: Keys.lastFitHeight)
     }
 
     /// Sets a custom height (switching to `.custom` mode if needed).
     func setPopoverHeight(_ height: CGFloat, persist: Bool = true) {
-        let clamped = Self.clampPopoverHeight(height, screenHeight: Self.currentScreenHeight)
+        let natural = Self.normalizeStoredHeight(height)
         if popoverHeightMode != .custom {
             popoverHeightMode = .custom
         }
-        if clamped != popoverHeight {
-            popoverHeight = clamped
+        if natural != popoverHeight {
+            popoverHeight = natural
         }
         if persist {
-            defaults.set(Double(clamped), forKey: Keys.popoverHeight)
+            defaults.set(Double(natural), forKey: Keys.popoverHeight)
         }
     }
 
@@ -397,11 +422,11 @@ class UsageManager: ObservableObject {
         }
 
         if let saved = defaults.object(forKey: Keys.popoverHeight) as? Double {
-            _popoverHeight = Published(initialValue: Self.clampPopoverHeight(CGFloat(saved), screenHeight: Self.currentScreenHeight))
+            _popoverHeight = Published(initialValue: Self.normalizeStoredHeight(CGFloat(saved)))
         }
 
         if let saved = defaults.object(forKey: Keys.lastFitHeight) as? Double {
-            _fitHeight = Published(initialValue: Self.clampPopoverHeight(CGFloat(saved), screenHeight: Self.currentScreenHeight))
+            _fitHeight = Published(initialValue: Self.normalizeStoredHeight(CGFloat(saved)))
         }
 
         if let raw = defaults.string(forKey: Keys.menuBarStyle), let style = MenuBarStyle(rawValue: raw) {
@@ -434,6 +459,22 @@ class UsageManager: ObservableObject {
             refreshLaunchAtLoginStatus()
             refreshData()
             setupTimer()
+            // Re-clamp the popover when a monitor is connected or disconnected.
+            screenObserver = NotificationCenter.default.addObserver(
+                forName: NSApplication.didChangeScreenParametersNotification,
+                object: nil,
+                queue: .main
+            ) { [weak self] _ in
+                self?.refreshScreenHeight()
+            }
+        }
+    }
+
+    private var screenObserver: NSObjectProtocol?
+
+    deinit {
+        if let screenObserver {
+            NotificationCenter.default.removeObserver(screenObserver)
         }
     }
 

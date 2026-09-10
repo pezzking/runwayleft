@@ -1,3 +1,4 @@
+import Combine
 import XCTest
 @testable import RunwayLeft
 
@@ -94,5 +95,50 @@ final class UsageManagerTests: XCTestCase {
         XCTAssertEqual(data.resets[0].name, "Full reset")
         XCTAssertEqual(data.resets[1].index, 2)
         XCTAssertEqual(data.resets[1].name, "Bonus reset")
+    }
+
+    // MARK: - Popover height across display changes
+
+    private func manager() -> UsageManager {
+        UsageManager(defaults: InMemorySettingsStore(), autoStart: false)
+    }
+
+    func testPopoverReclampsWhenScreenShrinksAndRestoresWhenItGrows() {
+        let m = manager()
+        m.refreshScreenHeight(1400)
+
+        // Content taller than the small screen but within the large one.
+        m.reportFitHeight(1300)
+        XCTAssertEqual(m.effectivePopoverHeight, 1300, "fits on the large display")
+
+        // Disconnect the large display: nothing re-measures, only the screen changed.
+        m.refreshScreenHeight(1084)
+        XCTAssertEqual(m.effectivePopoverHeight, 1060, "re-clamped to the small display without a new measurement")
+
+        // Reconnect: the natural height is restored, again without a re-measure.
+        m.refreshScreenHeight(1400)
+        XCTAssertEqual(m.effectivePopoverHeight, 1300)
+    }
+
+    func testFitHeightPersistsTheNaturalHeightNotTheClampedOne() {
+        let store = InMemorySettingsStore()
+        let m = UsageManager(defaults: store, autoStart: false)
+        m.refreshScreenHeight(900)
+        m.reportFitHeight(1300)
+
+        XCTAssertEqual(m.effectivePopoverHeight, 876, "clamped to this screen")
+        XCTAssertEqual(store.object(forKey: "lastFitHeight") as? Double, 1300, "but the natural height is what is stored")
+    }
+
+    func testRefreshScreenHeightOnlyPublishesRealChanges() {
+        let m = manager()
+        m.refreshScreenHeight(1000)
+        var changes = 0
+        let c = m.$screenHeight.dropFirst().sink { _ in changes += 1 }
+        m.refreshScreenHeight(1000)
+        XCTAssertEqual(changes, 0, "assigning the same height publishes nothing")
+        m.refreshScreenHeight(1200)
+        XCTAssertEqual(changes, 1)
+        c.cancel()
     }
 }
