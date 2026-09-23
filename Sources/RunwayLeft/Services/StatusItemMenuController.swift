@@ -14,6 +14,10 @@ import SwiftUI
 /// visibility back into the flag and do not intercept clicks to close it: both were tried,
 /// and both desynchronize the library's button state from the real window, after which
 /// clicking the status item stops toggling reliably. See the gotcha in CLAUDE.md.
+///
+/// The same monitor also refreshes `UsageManager.screenHeight` from the clicked button's
+/// screen before the click opens the popover, so the window is sized to the display it
+/// actually opens on — the reliable moment the display-change notification is not.
 final class StatusItemMenuController: NSObject {
     static let shared = StatusItemMenuController()
 
@@ -27,9 +31,21 @@ final class StatusItemMenuController: NSObject {
     func install() {
         guard monitor == nil else { return }
         monitor = NSEvent.addLocalMonitorForEvents(matching: [.rightMouseDown, .leftMouseDown]) { [weak self] event in
-            guard let self, Self.isContextClick(event), let button = Self.statusBarButton(under: event) else {
-                return event
+            guard let self, let button = Self.statusBarButton(under: event) else { return event }
+
+            // Any click on our status item is about to open (or reopen) the popover.
+            // A local monitor runs before the event is dispatched, so refreshing the
+            // screen height here — from the button's own screen — builds the window to
+            // fit *this* display before AppKit sizes and anchors it. The display-change
+            // notification alone proved unreliable: it can fire before `NSScreen`
+            // reflects the new layout, leaving a stale, too-tall height that opens the
+            // popover taller than the screen and detached from the menu bar after an
+            // external monitor is unplugged.
+            if let height = button.window?.screen?.visibleFrame.height {
+                UsageManager.shared.refreshScreenHeight(height)
             }
+
+            guard Self.isContextClick(event) else { return event }
             self.showMenu(below: button)
             // Swallowed on purpose: passing it on would also toggle the popover.
             return nil
