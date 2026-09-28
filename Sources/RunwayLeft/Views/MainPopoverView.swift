@@ -32,7 +32,12 @@ struct MainPopoverView: View {
                 .readHeight { gripHeight = $0; reportFit() }
         }
         .frame(width: manager.textSize.popoverWidth, height: manager.effectivePopoverHeight)
+        .background(PopoverWindowAnchor(manager: manager, contentHeight: manager.effectivePopoverHeight))
         .environment(\.textScale, manager.textSize.scale)
+        // When the window is still taller than the content (it does not shrink on its
+        // own), SwiftUI centers the content and the popover looks detached from the
+        // menu bar. Pin it to the top; `PopoverWindowAnchor` then trims the window.
+        .frame(maxHeight: .infinity, alignment: .top)
     }
 
     @ViewBuilder
