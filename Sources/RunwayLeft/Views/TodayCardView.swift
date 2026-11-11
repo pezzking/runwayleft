@@ -71,7 +71,6 @@ struct ClaudeStatusCard: View {
     let statusEnabled: Bool
 
     var body: some View {
-        let sessionPct = claude.sessionUsedPct
         let weekAllPct = claude.weekAllModelsPct
         let weekFablePct = claude.weekFablePct
 
@@ -95,15 +94,18 @@ struct ClaudeStatusCard: View {
                 Divider().opacity(0.25)
 
                 if claude.hasLiveStatus {
-                    ProgressBarRow(
-                        label: "Current session",
-                        valueText: String(format: "%.0f%% used", sessionPct),
-                        progressPct: sessionPct,
-                        resetText: claude.sessionReset.isEmpty ? nil : "Resets \(claude.sessionReset)",
-                        accentGradient: progressGradient(usedPct: sessionPct)
-                    )
+                    // Absent on plans without a session window.
+                    if let sessionPct = claude.sessionUsedPct {
+                        ProgressBarRow(
+                            label: "Current session",
+                            valueText: String(format: "%.0f%% used", sessionPct),
+                            progressPct: sessionPct,
+                            resetText: claude.sessionReset.isEmpty ? nil : "Resets \(claude.sessionReset)",
+                            accentGradient: progressGradient(usedPct: sessionPct)
+                        )
 
-                    Divider().opacity(0.25)
+                        Divider().opacity(0.25)
+                    }
 
                     ProgressBarRow(
                         label: "Current week · all models",
@@ -130,7 +132,7 @@ struct ClaudeStatusCard: View {
                         VStack(alignment: .leading, spacing: 2) {
                             Text("Local session expired")
                                 .appFont(.body, weight: .semibold)
-                            Text("Run `claude` in a terminal and sign in again to see live session and weekly limits.")
+                            Text("Run `claude` in a terminal and sign in again to see live limits.")
                                 .appFont(.caption)
                                 .foregroundColor(.secondary)
                                 .fixedSize(horizontal: false, vertical: true)

@@ -44,7 +44,9 @@ struct ClaudeUsageData {
     var lastComputedDate: String = ""
     
     // Official Live Subscription Quota Status (from claude -p /usage)
-    var sessionUsedPct: Double = 0.0
+    /// Nil when the plan has no session window: `/usage` then reports only
+    /// the weekly lines. Zero means a window that exists and is unused.
+    var sessionUsedPct: Double?
     var sessionReset: String = ""
     var weekAllModelsPct: Double = 0.0
     var weekAllModelsReset: String = ""

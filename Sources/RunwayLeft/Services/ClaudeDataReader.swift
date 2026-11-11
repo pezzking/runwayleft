@@ -20,7 +20,7 @@ class ClaudeDataReader {
     private var liveAttemptedAt: Date?
 
     struct LiveSnapshot {
-        var sessionUsedPct: Double
+        var sessionUsedPct: Double?
         var sessionReset: String
         var weekAllModelsPct: Double
         var weekAllModelsReset: String
@@ -234,14 +234,16 @@ class ClaudeDataReader {
             if let jsonData = output.data(using: .utf8),
                let json = try? JSONSerialization.jsonObject(with: jsonData) as? [String: Any],
                let result = json["result"] as? String {
-                parseUsageText(result, into: &data)
+                Self.parseUsageText(result, into: &data)
             } else {
-                parseUsageText(output, into: &data)
+                Self.parseUsageText(output, into: &data)
             }
         } catch { return }
     }
 
-    private func parseUsageText(_ text: String, into data: inout ClaudeUsageData) {
+    /// Pure seam for the `/usage` text. Each window is set only when its line
+    /// is present; plans without a session window omit "Current session:".
+    static func parseUsageText(_ text: String, into data: inout ClaudeUsageData) {
         let lines = text.components(separatedBy: .newlines)
         for line in lines {
             let trimmed = line.trimmingCharacters(in: .whitespaces)
@@ -277,7 +279,7 @@ class ClaudeDataReader {
         }
     }
 
-    private func extractPercentage(_ str: String) -> Double? {
+    private static func extractPercentage(_ str: String) -> Double? {
         let pattern = "(\\d+(?:\\.\\d+)?)%"
         if let regex = try? NSRegularExpression(pattern: pattern),
            let match = regex.firstMatch(in: str, range: NSRange(str.startIndex..., in: str)),
@@ -287,7 +289,7 @@ class ClaudeDataReader {
         return nil
     }
 
-    private func extractResetText(_ str: String) -> String? {
+    private static func extractResetText(_ str: String) -> String? {
         if let resetRange = str.range(of: "resets ") {
             return String(str[resetRange.upperBound...]).trimmingCharacters(in: .whitespaces)
         }

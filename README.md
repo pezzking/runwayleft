@@ -20,7 +20,7 @@
   <img src="assets/menubar.png" width="440" alt="Menu bar: today's tokens, Claude and Codex quota, LiteLLM budget, with an outage outline on Claude">
 </p>
 
-Claude Code and Codex meter you on rolling windows: a five-hour session and a weekly allowance. The numbers live behind CLI commands and hidden files, and you usually find out you are near the ceiling when a request is refused. RunwayLeft puts the percentages in the menu bar, shows when each window resets, and tells you when the provider itself is having a bad day.
+Claude Code and Codex meter you on rolling windows: a weekly allowance and, on most plans, a five-hour session. The numbers live behind CLI commands and hidden files, and you usually find out you are near the ceiling when a request is refused. RunwayLeft puts the percentages in the menu bar, shows when each window resets, and tells you when the provider itself is having a bad day.
 
 Everything is read from your own machine. The only network calls are the two public status pages and, if you configure it, your own LiteLLM proxy.
 
@@ -64,7 +64,7 @@ RunwayLeft appears in the menu bar. Full install notes, upgrading, and building 
 
 ### Subscription limits
 
-- **Claude Code.** Current session, weekly across all models, and the weekly model-specific limit, each with its reset time, exactly as `claude -p /usage` reports them. If the local session has expired, the card says so instead of showing zeros.
+- **Claude Code.** Weekly across all models, the weekly model-specific limit, and the current session where the plan has one, each with its reset time, exactly as `claude -p /usage` reports them. Plans without a session window show the two weekly limits only. If the local session has expired, the card says so instead of showing zeros.
 - **OpenAI Codex.** Both rate-limit windows, the 5-hour session and the 7-day allowance, plus your plan, the configured model, and any limit-reset credits with their expiry.
 - **Reset times** are shown under every bar, so you know whether to wait ten minutes or three days.
 

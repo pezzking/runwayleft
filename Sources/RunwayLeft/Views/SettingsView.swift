@@ -172,7 +172,7 @@ struct SettingsView: View {
 
             Divider().opacity(0.3)
 
-            SettingRow(title: "Claude metric", subtitle: "Which Claude limit the menu bar percentage reflects.") {
+            SettingRow(title: "Claude metric", subtitle: "Which Claude limit the menu bar percentage reflects. Plans without a session window show the week instead.") {
                 Picker("", selection: $manager.claudeMenuMetric) {
                     ForEach(ClaudeMenuMetric.allCases) { metric in
                         Text(metric.label).tag(metric)

@@ -8,7 +8,7 @@ final class MenuBarComposerTests: XCTestCase {
         return formatter.string(from: Date())
     }
 
-    private func liveClaude(session: Double = 42, weekAll: Double = 17, weekModel: Double = 32, todayTokens: Int64 = 1_000) -> ClaudeUsageData {
+    private func liveClaude(session: Double? = 42, weekAll: Double = 17, weekModel: Double = 32, todayTokens: Int64 = 1_000) -> ClaudeUsageData {
         var claude = ClaudeUsageData()
         claude.hasLiveStatus = true
         claude.sessionUsedPct = session
@@ -149,6 +149,17 @@ final class MenuBarComposerTests: XCTestCase {
         options.claudeMetric = .highest
         let segments = MenuBarComposer.segments(claude: claude, codex: codexWithWeekly(), options: options)
         XCTAssertEqual(segments[1].text, "55%")
+    }
+
+    func testClaudeWithoutSessionWindowFallsBackToWeek() {
+        let claude = liveClaude(session: nil, weekAll: 10, weekModel: 7)
+
+        XCTAssertEqual(MenuBarComposer.claudeMetricValue(claude, metric: .session), 10, "falls back to the window that exists")
+        XCTAssertEqual(MenuBarComposer.claudeMetricValue(claude, metric: .weekModel), 7)
+        XCTAssertEqual(MenuBarComposer.claudeMetricValue(claude, metric: .highest), 10)
+
+        let segments = MenuBarComposer.segments(claude: claude, codex: codexWithWeekly(), options: MenuBarOptions())
+        XCTAssertEqual(segments[1].text, "10%")
     }
 
     func testExpiredClaudeSessionShowsExpiredWhenHistoryExists() {

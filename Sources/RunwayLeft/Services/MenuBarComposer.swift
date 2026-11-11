@@ -50,7 +50,7 @@ enum ClaudeMenuMetric: String, CaseIterable, Identifiable {
         case .session: return "Current session"
         case .weekAll: return "Week (all models)"
         case .weekModel: return "Week (model-specific)"
-        case .highest: return "Highest of the three"
+        case .highest: return "Highest window"
         }
     }
 }
@@ -183,13 +183,14 @@ enum MenuBarComposer {
         return result
     }
 
+    /// Plans without a session window fall back to the weekly all-models value.
     static func claudeMetricValue(_ claude: ClaudeUsageData, metric: ClaudeMenuMetric) -> Double? {
         guard claude.hasLiveStatus else { return nil }
         switch metric {
-        case .session: return claude.sessionUsedPct
+        case .session: return claude.sessionUsedPct ?? claude.weekAllModelsPct
         case .weekAll: return claude.weekAllModelsPct
         case .weekModel: return claude.weekFablePct
-        case .highest: return max(claude.sessionUsedPct, claude.weekAllModelsPct, claude.weekFablePct)
+        case .highest: return max(claude.sessionUsedPct ?? 0, claude.weekAllModelsPct, claude.weekFablePct)
         }
     }
 

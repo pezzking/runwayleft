@@ -337,6 +337,15 @@ final class ViewRenderTests: XCTestCase {
         try render(manager, name: "overview-medium-light", appearance: .aqua)
     }
 
+    func testOverviewRendersWithoutClaudeSessionWindow() throws {
+        let manager = makeManager(textSize: .medium)
+        manager.claudeData.sessionUsedPct = nil
+        manager.claudeData.sessionReset = ""
+        manager.selectedTab = .overview
+        manager.setPopoverHeight(1_200, persist: false)
+        try render(manager, name: "overview-medium-no-claude-session")
+    }
+
     func testDetailTabsRender() throws {
         let manager = makeManager(textSize: .medium)
         manager.setPopoverHeight(980, persist: false)
