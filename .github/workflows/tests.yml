@@ -1,0 +1,33 @@
+# Runs the tests on every push to main, on pull requests, and on version tags.
+#
+# Releases are not made here. scripts/release.sh makes them on the maintainer's
+# Mac, because the Developer ID certificate and the login for Apple's check
+# (notarization) live in that Mac's keychain only. The script pushes the tag
+# and creates the GitHub release itself, so this workflow must never publish.
+name: Tests
+
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - "v*"
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: macos-15
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Test
+        run: swift test
+
+      - name: Build universal bundle (ad-hoc signed)
+        run: |
+          RUNWAYLEFT_UNIVERSAL=1 ./build_app.sh
+          lipo -info "build/RunwayLeft.app/Contents/MacOS/RunwayLeft"

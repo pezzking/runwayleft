@@ -50,9 +50,9 @@ cat << 'EOF' > "$CONTENTS_DIR/Info.plist"
     <key>CFBundlePackageType</key>
     <string>APPL</string>
     <key>CFBundleShortVersionString</key>
-    <string>1.14.0</string>
+    <string>1.14.1</string>
     <key>CFBundleVersion</key>
-    <string>20</string>
+    <string>21</string>
     <key>LSMinimumSystemVersion</key>
     <string>13.0</string>
     <key>LSUIElement</key>
@@ -85,7 +85,21 @@ chmod +x "$MacOS_DIR/$EXECUTABLE"
 echo "🔏 Code-signing app bundle with entitlements..."
 # Use Apple's xattr explicitly: pyenv/pip can shadow it with a Python xattr that lacks -r
 /usr/bin/xattr -cr "$BUNDLE_DIR"
-codesign --force --deep --options runtime --entitlements Entitlements.plist --sign - "$BUNDLE_DIR"
+# Ad-hoc by default, which is enough on the Mac that built it. scripts/release.sh
+# passes RUNWAYLEFT_SIGN_ID (the hash of a "Developer ID Application" certificate)
+# and RUNWAYLEFT_TIMESTAMP (none, or apple for a build that goes to Apple's check).
+# The bundle holds one program and no nested code, so it is signed once, no --deep.
+SIGN_ID="${RUNWAYLEFT_SIGN_ID:--}"
+SIGN_ARGS=(--force --options runtime --entitlements Entitlements.plist --sign "$SIGN_ID")
+if [ "$SIGN_ID" != "-" ]; then
+    if [ "${RUNWAYLEFT_TIMESTAMP:-none}" = "apple" ]; then
+        SIGN_ARGS+=(--timestamp)
+    else
+        SIGN_ARGS+=(--timestamp=none)
+    fi
+fi
+codesign "${SIGN_ARGS[@]}" "$BUNDLE_DIR"
+codesign --verify --strict "$BUNDLE_DIR"
 
 echo "✅ App bundle created and signed successfully at build/$APP_NAME"
 echo "🚀 To run the app, execute: open 'build/$APP_NAME'"

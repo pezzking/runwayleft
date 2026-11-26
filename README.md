@@ -32,11 +32,7 @@ Everything is read from your own machine. The only network calls are the two pub
 brew install --cask pezzking/tap/runwayleft
 ```
 
-The app is ad-hoc signed, not notarized, so macOS blocks the first launch of a downloaded copy. Either open System Settings › Privacy & Security and choose Open Anyway, or clear the quarantine flag once before launching:
-
-```bash
-xattr -dr com.apple.quarantine /Applications/RunwayLeft.app
-```
+Or download `RunwayLeft-<version>.dmg` from the [latest release](https://github.com/pezzking/runwayleft/releases/latest) and drag the app to Applications. Releases after 1.14.0 are signed with a Developer ID and notarized by Apple, so they open without a Gatekeeper warning.
 
 RunwayLeft appears in the menu bar. Full install notes, upgrading, and building from source are under [Install](#install).
 
@@ -152,13 +148,15 @@ The refresh timer carries tolerance so macOS can coalesce wakeups, nothing anima
 brew install --cask pezzking/tap/runwayleft
 ```
 
-The app is ad-hoc signed, not notarized, so macOS blocks the first launch of a downloaded copy. Either open System Settings › Privacy & Security and choose Open Anyway, or clear the quarantine flag once before launching:
+Or download `RunwayLeft-<version>.dmg` from the [latest release](https://github.com/pezzking/runwayleft/releases/latest), open it, and drag the app to Applications.
+
+Releases after 1.14.0 are signed with a Developer ID and notarized by Apple, so they open without a Gatekeeper warning, also on a Mac without internet. Version 1.14.0 and older were ad-hoc signed: for those, open System Settings › Privacy & Security and choose Open Anyway, or clear the quarantine flag once before launching:
 
 ```bash
 xattr -dr com.apple.quarantine /Applications/RunwayLeft.app
 ```
 
-Upgrade with `brew upgrade --cask runwayleft`, then clear the flag again. Settings carry over.
+Upgrade with `brew upgrade --cask runwayleft`. Settings carry over.
 
 ### Build from source
 
